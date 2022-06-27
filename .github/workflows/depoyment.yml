@@ -1,0 +1,88 @@
+# This workflow will build and push a node.js application to an Azure Web App when a commit is pushed to your default branch.
+#
+# This workflow assumes you have already created the target Azure App Service web app.
+# For instructions see https://docs.microsoft.com/en-us/azure/app-service/quickstart-nodejs?tabs=linux&pivots=development-environment-cli
+#
+# To configure this workflow:
+#
+# 1. Download the Publish Profile for your Azure Web App. You can download this file from the Overview page of your Web App in the Azure Portal.
+#    For more information: https://docs.microsoft.com/en-us/azure/app-service/deploy-github-actions?tabs=applevel#generate-deployment-credentials
+#
+# 2. Create a secret in your repository named AZURE_WEBAPP_PUBLISH_PROFILE, paste the publish profile contents as the value of the secret.
+#    For instructions on obtaining the publish profile see: https://docs.microsoft.com/azure/app-service/deploy-github-actions#configure-the-github-secret
+#
+# 3. Change the value for the AZURE_WEBAPP_NAME. Optionally, change the AZURE_WEBAPP_PACKAGE_PATH and NODE_VERSION environment variables below.
+#
+# For more information on GitHub Actions for Azure: https://github.com/Azure/Actions
+# For more information on the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
+# For more samples to get started with GitHub Action workflows to deploy to Azure: https://github.com/Azure/actions-workflow-samples
+
+on:
+  push:
+    branches:
+      - "main"
+  workflow_dispatch:
+
+env:
+  AZURE_WEBAPP_NAME: master   # set this to your application's name
+  AZURE_WEBAPP_PACKAGE_PATH: 'public'      # set this to the path to your web app project, defaults to the repository root
+  NODE_VERSION: '16.x'                # set this to the node version to use
+
+name: Build and Deploy Hexo
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    env:
+      TZ: Asia/Shanghai  
+    steps:
+    - name: Checkout 🛎️
+      uses: actions/checkout@master
+      with:
+        token: ${{ secrets.SECRET_WORKFLOW_TOKEN }}
+        submodules: 'true'
+        persist-credentials: false
+      
+    - name: Use Node.js ${{ env.NODE_VERSION }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        GITHUB_TOKEN: ${{ secrets.SECRET_WORKFLOW_TOKEN }}
+
+    - name: Install Pandoc
+      run: |
+        sudo apt-get install pandoc
+    #缓存
+    - name: Cache node modules # step2
+      uses: actions/cache@v1
+      id: cache
+      with:
+        path: node_modules
+        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-
+      
+    - name: Install Dependencies 🔧  # step3 name
+      if: steps.cache.outputs.cache-hit != 'true' # 如果变量 cache-hit 不等于 true
+      run: npm install # 安装 node modules 相关依赖
+
+
+    - name:  Build  hexo 🔧 
+      run: |
+        npm install -g npm@8.13.1 
+        npm install -g hexo-cli
+        hexo clean
+        hexo generate -d
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        GITHUB_TOKEN: ${{ secrets.SECRET_WORKFLOW_TOKEN }}
+
+    # - name: Deploy 🚀
+    #   uses: JamesIves/github-pages-deploy-action@v4.3.3
+    #   with:
+    #     repository-name: szrushi/szrushi.github.io
+    #     ssh-key: ${{ secrets.SECRET_WORKFLOW_TOKEN }}
+    #     branch: ${{ env.AZURE_WEBAPP_NAME }} # The branch the action should deploy to.
+    #     folder: ${{ env.AZURE_WEBAPP_PACKAGE_PATH }} # The folder the action should deploy.
+    #     single-commit: true
+    #     commit-message: "Deploy by source"
+        
