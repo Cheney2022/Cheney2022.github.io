@@ -6,7 +6,7 @@
   <link href="https://szrushi.github.io/atom.xml" rel="self"/>
   
   <link href="https://szrushi.github.io/"/>
-  <updated>2022-06-27T07:55:23.718Z</updated>
+  <updated>2022-06-27T09:28:47.333Z</updated>
   <id>https://szrushi.github.io/</id>
   
   <author>
@@ -18,21 +18,60 @@
   
   <entry>
     <title>Hello World</title>
-    <link href="https://szrushi.github.io/posts/undefined.html"/>
-    <id>https://szrushi.github.io/posts/undefined.html</id>
-    <published>2022-06-27T07:55:23.718Z</published>
-    <updated>2022-06-27T07:55:23.718Z</updated>
+    <link href="https://szrushi.github.io/posts/4a17b156.html"/>
+    <id>https://szrushi.github.io/posts/4a17b156.html</id>
+    <published>2022-06-27T09:28:47.333Z</published>
+    <updated>2022-06-27T09:28:47.333Z</updated>
     
-    <content type="html"><![CDATA[<!-- Welcome to [Hexo](https://hexo.io/)! This is your very first post. Check [documentation](https://hexo.io/docs/) for more info. If you get any problems when using Hexo, you can find the answer in [troubleshooting](https://hexo.io/docs/troubleshooting.html) or you can ask me on [GitHub](https://github.com/hexojs/hexo/issues).## Quick Start### Create a new post<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo new <span class="string">&quot;My New Post&quot;</span></span><br></pre></td></tr></table></figure><p>More info: <a href="https://hexo.io/docs/writing.html">Writing</a></p><h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure><p>More info: <a href="https://hexo.io/docs/server.html">Server</a></p><h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure><p>More info: <a href="https://hexo.io/docs/generating.html">Generating</a></p><h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure><p>More info: <a href="https://hexo.io/docs/one-command-deployment.html">Deployment</a> –&gt;</p>]]></content>
+    <content type="html"><![CDATA[<hr><h1 id="测试博客"><a href="#测试博客" class="headerlink" title="测试博客"></a>测试博客</h1>]]></content>
     
     
       
       
-    <summary type="html">&lt;!-- Welcome to [Hexo](https://hexo.io/)! This is your very first post. Check [documentation](https://hexo.io/docs/) for more info. If you g</summary>
+    <summary type="html">&lt;hr&gt;
+&lt;h1 id=&quot;测试博客&quot;&gt;&lt;a href=&quot;#测试博客&quot; class=&quot;headerlink&quot; title=&quot;测试博客&quot;&gt;&lt;/a&gt;测试博客&lt;/h1&gt;</summary>
       
     
     
     
+    <category term="web" scheme="https://szrushi.github.io/categories/web/"/>
+    
+    
+    <category term="jQuery" scheme="https://szrushi.github.io/tags/jQuery/"/>
+    
+    <category term="表格" scheme="https://szrushi.github.io/tags/%E8%A1%A8%E6%A0%BC/"/>
+    
+    <category term="表单验证" scheme="https://szrushi.github.io/tags/%E8%A1%A8%E5%8D%95%E9%AA%8C%E8%AF%81/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>paddle</title>
+    <link href="https://szrushi.github.io/posts/11b8404b.html"/>
+    <id>https://szrushi.github.io/posts/11b8404b.html</id>
+    <published>2022-06-26T12:24:45.000Z</published>
+    <updated>2022-06-27T09:28:47.333Z</updated>
+    
+    <content type="html"><![CDATA[<h1 id="paddle-c-服务端部署方式23"><a href="#paddle-c-服务端部署方式23" class="headerlink" title="paddle c++服务端部署方式23"></a>paddle c++服务端部署方式23</h1><!--!-- less --!># paddle c++服务端部署方式dockerregistry.baidubce.com/paddlepaddle/paddle:2.3.0 /bin/bash代码表一 paddleocr安装以来pip3 install -r requirements.txt]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;h1 id=&quot;paddle-c-服务端部署方式23&quot;&gt;&lt;a href=&quot;#paddle-c-服务端部署方式23&quot; class=&quot;headerlink&quot; title=&quot;paddle c++服务端部署方式23&quot;&gt;&lt;/a&gt;paddle c++服务端部署方式23&lt;/h1&gt;&lt;!--!--</summary>
+      
+    
+    
+    
+    <category term="paddle" scheme="https://szrushi.github.io/categories/paddle/"/>
+    
+    
+    <category term="c++" scheme="https://szrushi.github.io/tags/c/"/>
+    
+    <category term="docker" scheme="https://szrushi.github.io/tags/docker/"/>
+    
+    <category term="机器学习" scheme="https://szrushi.github.io/tags/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/"/>
+    
+    <category term="图片识别" scheme="https://szrushi.github.io/tags/%E5%9B%BE%E7%89%87%E8%AF%86%E5%88%AB/"/>
     
   </entry>
   
