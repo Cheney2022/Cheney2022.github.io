@@ -1,0 +1,27 @@
+name: 部署hexo静态页面
+
+env:
+  # blog部署的页面
+  BLOG: Cheney2022/blog
+
+on:
+  push:
+    branches:    
+      - 'main'
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 拉取hexo源文件
+        uses: action/checkout@v3
+        with:
+          persist-credentials: 'false'
+          ref: 'main'
+          token: ${{ secrets.token }}
+      - name: 部署hexo
+        uses: theme-keep/hexo-deploy-github-pages-action@master
+        env:
+          PUBLISH_REPOSITORY: ${{ env.BLOG }}
+          BRANCH: gh-pages
+          PUBLISH_DIR: ./public
+          PERSONAL_TOKEN: ${{ secrets.token }} 
