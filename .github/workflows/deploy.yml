@@ -6,9 +6,9 @@ env:
   # hexo源文件仓库
   BLOG_SOURCE: Cheney2022/www.wqxin.cn
   # issue链接
-  ISSUE_URL: https://github.com/Cheney2022/blog/issues
+  ISSUE_URL: https://github.com/Cheney2022/Cheney2022.github.io/issues
   # blog部署的页面
-  BLOG: Cheney2022/blog
+  BLOG: Cheney2022/Cheney2022.github.io
   # ${{ github.event.issue.user.login }}
 
 on:
