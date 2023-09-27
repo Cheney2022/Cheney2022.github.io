@@ -1,0 +1,628 @@
+<?xml version="1.0" encoding="utf-8"?>
+<search>
+  <entry>
+    <title>qemu/kvm 源码分析与应用 第三节</title>
+    <url>//post/43562.html</url>
+    <content><![CDATA[<link rel="stylesheet" class="aplayer-secondary-style-marker" href="/assets/css/APlayer.min.css"><script src="/assets/js/APlayer.min.js" class="aplayer-secondary-script-marker"></script><blockquote>
+<p>本节主要介绍libvirtd源码安装</p>
+</blockquote>
+<h2 id="libvirtd-源码安装">libvirtd 源码安装</h2>
+<blockquote>
+<p>操作系统版本为ubuntu 22.04</p>
+</blockquote>
+<h3 id="安装依赖">安装依赖</h3>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token function">sudo</span> <span class="token function">apt-get</span> <span class="token function">install</span> <span class="token function">git</span> build-essential  libssl-dev  pkg-config libncurses-dev flex bison libelf-dev libpciaccess-dev  xsltproc libyajl-dev python3-docutils <span class="token parameter variable">-y</span><span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+<h3 id="下载源码">下载源码</h3>
+<p>从 <a href="https://libvirt.org/sources/">https://libvirt.org/sources/</a> 下载新版本的 Libvirt 源码。</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token function">curl</span> -<span class="token comment"># -O https://download.libvirt.org/libvirt-9.6.0.tar.xz -o libvirt-9.6.0.tar.xz</span><span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+<span id="more"></span>
+<h3 id="编译Libvirt-工具">编译Libvirt 工具</h3>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token function">tar</span> <span class="token parameter variable">-xf</span> libvirt-9.6.0.tar.xz
+   <span class="token builtin class-name">cd</span>  libvirt-9.6.0
+   meson build <span class="token parameter variable">-Dsystem</span><span class="token operator">=</span>true <span class="token parameter variable">-Ddriver_qemu</span><span class="token operator">=</span>enabled <span class="token parameter variable">-Ddriver_libvirtd</span><span class="token operator">=</span>enabled <span class="token parameter variable">-Ddriver_remote</span><span class="token operator">=</span>enabled  
+   ninja <span class="token parameter variable">-C</span> build
+   <span class="token function">sudo</span> ninja <span class="token parameter variable">-C</span> build <span class="token function">install</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<h3 id="检查是否安装成功：">检查是否安装成功：</h3>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token function">virsh</span> <span class="token parameter variable">--version</span><span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+<h2 id="编译过程中可能遇到的问题。">编译过程中可能遇到的问题。</h2>
+<h3 id="libvirt-libvirt-common-html-not-find">libvirt-libvirt-common.html not find</h3>
+<p>sudo ninja -C build install 过程中出现ERROR: File ‘docs/html/libvirt-libvirt-common.html’ could not be found 错误，导致 无法正常完成安装，<br>
+查看 build/docs/html 并没有libvirt-xx-.html 文件，因为其存在 build/html 下.<br>
+解决方案也很简单 将 html 文件 拷贝到docs/html 下即可，也可以做一个链接</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token function">ln</span> <span class="token parameter variable">-s</span> <span class="token variable"><span class="token variable">`</span><span class="token builtin class-name">pwd</span><span class="token variable">`</span></span>/build/html/* <span class="token variable"><span class="token variable">`</span><span class="token builtin class-name">pwd</span><span class="token variable">`</span></span>/build/docs/html/<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+<h3 id="internal-error-Network-is-already-in-use-by-interface-ens3">internal error: Network is already in use by interface ens3</h3>
+<p>安装完成后 执行</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">systemctl status libvirtd<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+<p>发现libvirtd 进程并未正常启动，发现错误日志为</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">internal error: Network is already <span class="token keyword">in</span> use by interface ens3<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+<p>出现该原因的情况是libvirtd 需要基于ens3网卡创建一个对虚拟机使用的虚拟网桥，该网桥的默认网络与ens3 网卡的网络重复导致的。<br>
+解决方案 修改默认的virtio 网络地址</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token function">sudo</span> <span class="token function">vim</span> /etc/libvirt/qemu/networks/default.xml<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+<pre class="line-numbers language-markup" data-language="markup"><code class="language-markup"><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>network</span><span class="token punctuation">></span></span>
+  <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>name</span><span class="token punctuation">></span></span>default<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>name</span><span class="token punctuation">></span></span>
+  <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>uuid</span><span class="token punctuation">></span></span>4a9f5265-47e0-4a1a-ad05-2a615690e14a<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>uuid</span><span class="token punctuation">></span></span>
+  <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>forward</span> <span class="token attr-name">mode</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">'</span>nat<span class="token punctuation">'</span></span><span class="token punctuation">/></span></span>
+  <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>bridge</span> <span class="token attr-name">name</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">'</span>virbr0<span class="token punctuation">'</span></span> <span class="token attr-name">stp</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">'</span>on<span class="token punctuation">'</span></span> <span class="token attr-name">delay</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">'</span>0<span class="token punctuation">'</span></span><span class="token punctuation">/></span></span>
+  <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>mac</span> <span class="token attr-name">address</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">'</span>52:54:00:fe:27:f0<span class="token punctuation">'</span></span><span class="token punctuation">/></span></span>
+  <span class="token comment">&lt;!-- 修改部分--></span>
+  <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>ip</span> <span class="token attr-name">address</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">'</span>192.168.100.1<span class="token punctuation">'</span></span> <span class="token attr-name">netmask</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">'</span>255.255.255.0<span class="token punctuation">'</span></span><span class="token punctuation">></span></span> 
+    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>dhcp</span><span class="token punctuation">></span></span>
+      <span class="token comment">&lt;!-- 修改部分--></span>
+      <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>range</span> <span class="token attr-name">start</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">'</span>192.168.100.2<span class="token punctuation">'</span></span> <span class="token attr-name">end</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">'</span>192.168.100.254<span class="token punctuation">'</span></span><span class="token punctuation">/></span></span>
+    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>dhcp</span><span class="token punctuation">></span></span>
+  <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>ip</span><span class="token punctuation">></span></span>
+<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>network</span><span class="token punctuation">></span></span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<p>重新执行</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">systemctl start libvirtd 
+ systemctl status libvirtd<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span></span></code></pre>
+<blockquote>
+<p>出现该原因 可能是博主使用环境是kvm的虚拟机导致的</p>
+</blockquote>
+<h3 id="invalid-argument-Failed-to-parse-user-‘libvirt-qemu’">invalid argument: Failed to parse user ‘libvirt-qemu’</h3>
+<p>安装之后通过 systmctl status libvirtd 发现其进程并未正常启动，报错原因为</p>
+<pre class="line-numbers language-none"><code class="language-none">8月 02 10:15:16 invalid argument: Failed to parse user &#39;libvirt-qemu&#39;
+8月 02 10:15:16 cheney-Standard-PC-i440FX-PIIX-1996 libvirtd[295371]: Initialization of QEMU state driver failed: invalid argument: Failed t&gt;
+8月 02 10:15:16 cheney-Standard-PC-i440FX-PIIX-1996 libvirtd[295371]: Driver state initialization failed<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span></span></code></pre>
+<p>解决方案：<br>
+添加 一下用户组和用户即可</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token function">sudo</span> <span class="token function">groupadd</span> libvirt-qemu
+  <span class="token function">sudo</span> <span class="token function">groupadd</span>  libvirt
+  <span class="token function">sudo</span> <span class="token function">groupadd</span> libvirtd
+  <span class="token function">sudo</span> <span class="token function">useradd</span> libvirt-qemu <span class="token parameter variable">-g</span> libvirt-qemu <span class="token parameter variable">-M</span> <span class="token parameter variable">-s</span> /usr/sbin/nologin
+
+  <span class="token function">sudo</span> systemctl start libvirtd<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+]]></content>
+      <categories>
+        <category>虚拟化</category>
+        <category>kvm</category>
+      </categories>
+      <tags>
+        <tag>虚拟化</tag>
+        <tag>kvm</tag>
+        <tag>qemu</tag>
+        <tag>libvirtd</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>qemu/kvm 源码分析与应用 第二节 qemu 安装</title>
+    <url>//post/65310.html</url>
+    <content><![CDATA[<link rel="stylesheet" class="aplayer-secondary-style-marker" href="/assets/css/APlayer.min.css"><script src="/assets/js/APlayer.min.js" class="aplayer-secondary-script-marker"></script><blockquote>
+<p>本节主要qemu-kvm的安装</p>
+</blockquote>
+<h2 id="qemu-源码安装">qemu 源码安装</h2>
+<blockquote>
+<p>操作系统版本为ubuntu 20.04</p>
+</blockquote>
+<h3 id="安装依赖">安装依赖</h3>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token function">sudo</span> <span class="token function">apt-get</span> <span class="token function">install</span> build-essential zlib1g-dev pkg-config libglib2.0-dev binutils-dev libboost-all-dev autoconf libtool libssl-dev libpixman-1-dev   virtualenv libtool liblog4cpp5-dev libavcodec-dev libssl-dev libglu1-mesa-dev libasound2-dev libfreetype6-dev  libfontconfig1-dev libogg-dev libxrandr-dev libgcrypt20-dev libsdl1.2-dev libsasl2-dev  libnss3-dev libpixman-1-dev libxfixes-dev libjpeg8-dev libiscsi-dev  libusbredirparser-dev libusbredirhost-dev usbredirectlibspice-server-dev<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+<h3 id="下载源码">下载源码</h3>
+<p>源码的下载使用中国科技大学的镜像站点下载qemu</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token function">git</span> clone https://mirrors.tuna.tsinghua.edu.cn/git/qemu.git <span class="token parameter variable">-b</span> stable-8.0
+<span class="token function">git</span> submodule update <span class="token parameter variable">--recursive</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span></span></code></pre>
+<p>或者</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token function">curl</span> https://mirrors.tuna.tsinghua.edu.cn/git/qemu/qemu.sh <span class="token operator">|</span> <span class="token function">bash</span><span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+<h3 id="编译qemu">编译qemu</h3>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token builtin class-name">cd</span> qemu
+    ./configure --enable-usb-redir  --enable-spice --enable-libiscsi --enable-spice-protocol --enable-strip
+    <span class="token function">sudo</span> <span class="token function">make</span> <span class="token parameter variable">-j</span> <span class="token variable"><span class="token variable">$(</span>nproc<span class="token variable">)</span></span> 
+    <span class="token function">sudo</span> <span class="token function">make</span> <span class="token function">install</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span></span></code></pre>
+]]></content>
+      <categories>
+        <category>虚拟化</category>
+        <category>kvm</category>
+      </categories>
+      <tags>
+        <tag>虚拟化</tag>
+        <tag>kvm</tag>
+        <tag>qemu</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>qemu/kvm 源码分析与应用 第一节</title>
+    <url>//post/17906.html</url>
+    <content><![CDATA[<link rel="stylesheet" class="aplayer-secondary-style-marker" href="/assets/css/APlayer.min.css"><script src="/assets/js/APlayer.min.js" class="aplayer-secondary-script-marker"></script><blockquote>
+<p>本节主要介绍kvm源码安装,以及qemu-kvm的安装</p>
+</blockquote>
+<h2 id="kvm-源码安装">kvm 源码安装</h2>
+<blockquote>
+<p>操作系统版本为ubuntu 22.04</p>
+</blockquote>
+<h3 id="安装依赖">安装依赖</h3>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token function">sudo</span> <span class="token function">apt-get</span> <span class="token function">install</span> <span class="token function">git</span> build-essential  libssl-dev  pkg-config libncurses-dev flex bison libelf-dev<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+<h3 id="下载源码">下载源码</h3>
+<p>源码的下载使用中国科技大学的镜像站点下载linux内核源码</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token function">git</span> clone https://mirrors.tuna.tsinghua.edu.cn/git/linux-stable.git <span class="token parameter variable">-b</span> linux-6.4.y<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+<h3 id="编译内核kvm模块">编译内核kvm模块</h3>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token builtin class-name">cd</span> linux-stable
+    <span class="token function">cp</span> /boot/config-<span class="token variable"><span class="token variable">$(</span><span class="token function">uname</span> <span class="token parameter variable">-r</span><span class="token variable">)</span></span> .config
+    <span class="token function">make</span> menuconfig
+    <span class="token function">make</span> <span class="token parameter variable">-j</span> <span class="token variable"><span class="token variable">$(</span>nproc<span class="token variable">)</span></span>
+    <span class="token function">sudo</span> <span class="token function">make</span> modules_install 
+    <span class="token function">sudo</span> <span class="token function">make</span> <span class="token function">install</span>     <span class="token comment">#安装kernel</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<p>或者</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token builtin class-name">cd</span> linux-stable
+<span class="token function">cp</span> /boot/config-<span class="token variable"><span class="token variable">$(</span><span class="token function">uname</span> <span class="token parameter variable">-r</span><span class="token variable">)</span></span> .config
+<span class="token function">make</span> menuconfig
+<span class="token function">make</span> vmlinux <span class="token parameter variable">-j</span> <span class="token variable"><span class="token variable">$(</span>nproc<span class="token variable">)</span></span>       <span class="token comment">#编译kernel   ##编译很慢请耐心等待##</span>
+<span class="token function">make</span> bzImage            <span class="token comment">#编译bzImage</span>
+<span class="token function">make</span> modules <span class="token parameter variable">-j</span> <span class="token variable"><span class="token variable">$(</span>nproc<span class="token variable">)</span></span>        <span class="token comment">#编译内核模块</span>
+<span class="token function">make</span> modules_install       <span class="token comment">#安装module</span>
+<span class="token function">make</span> <span class="token function">install</span>              <span class="token comment">#安装kernel</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<h3 id="配置内核启动参数">配置内核启动参数</h3>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token function">sudo</span> <span class="token function">vim</span> /etc/default/grub<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+<!-- ##  qemu-kvm 源码安装 -->
+<h2 id="编译过程中可能遇到的问题。">编译过程中可能遇到的问题。</h2>
+<h3 id="certs-x509-certificate-list">'certs/x509_certificate_list</h3>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">make<span class="token punctuation">[</span><span class="token number">3</span><span class="token punctuation">]</span>: *** No rule to <span class="token function">make</span> target <span class="token string">'debian/canonical-certs.pem'</span>,  needed by <span class="token string">'certs/x509_certificate_list'</span><span class="token builtin class-name">.</span>  Stop.<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+<p>解决方法：</p>
+<p>将CONFIG_SYSTEM_REVOCATION_KEYS 和 CONFIG_SYSTEM_TRUSTED_KEYS 都设置为值设置为&quot;&quot;，即空字符串.<br>
+重新执行</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token function">make</span> <span class="token parameter variable">-j</span> <span class="token variable"><span class="token variable">$(</span>nproc<span class="token variable">)</span></span><span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+]]></content>
+      <categories>
+        <category>虚拟化</category>
+        <category>kvm</category>
+      </categories>
+      <tags>
+        <tag>虚拟化</tag>
+        <tag>kvm</tag>
+        <tag>qemu</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>linux 设置clang 为默认编译器</title>
+    <url>//post/3301.html</url>
+    <content><![CDATA[<link rel="stylesheet" class="aplayer-secondary-style-marker" href="/assets/css/APlayer.min.css"><script src="/assets/js/APlayer.min.js" class="aplayer-secondary-script-marker"></script><h1>安装clang</h1>
+<p>clang 安装方式 官网提供一下两种安装方式，及默认安装和自动脚本安装。两种安装方式本质上并没有什么不同。</p>
+<div class="tabs" id="安装"><ul class="nav-tabs"><li class="tab"><button type="button" data-href="#安装-1">默认仓库安装</button></li><li class="tab"><button type="button" data-href="#安装-2">shell 自动化方式安装</button></li></ul><div class="tab-contents"><div class="tab-item-content" id="安装-1"><pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token function">apt-get</span> <span class="token function">install</span> clang-format clang-tidy clang-tools clang clang libc++-dev libc++1 libc++abi-dev libc++abi1 libclang-dev libclang1 liblldb-dev libllvm-ocaml-dev libomp-dev libomp5 lld lldb llvm-dev llvm-runtime llvm python3-clang <span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+<blockquote>
+<p>安装的版本版本为仓库默认版本，需要 添加以下源 来选择不同版本</p>
+</blockquote>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic main
+deb-src http://apt.llvm.org/bionic/ llvm-toolchain-bionic main
+<span class="token comment"># Needs 'sudo add-apt-repository ppa:ubuntu-toolchain-r/test' for libstdc++ with C++20 support</span>
+<span class="token comment"># 16</span>
+deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic-16 main
+deb-src http://apt.llvm.org/bionic/ llvm-toolchain-bionic-16 main
+<span class="token comment"># 17</span>
+deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic-17 main
+deb-src http://apt.llvm.org/bionic/ llvm-toolchain-bionic-17 main
+deb http://apt.llvm.org/focal/ llvm-toolchain-focal main
+deb-src http://apt.llvm.org/focal/ llvm-toolchain-focal main
+<span class="token comment"># 16</span>
+deb http://apt.llvm.org/focal/ llvm-toolchain-focal-16 main
+deb-src http://apt.llvm.org/focal/ llvm-toolchain-focal-16 main
+<span class="token comment"># 17</span>
+deb http://apt.llvm.org/focal/ llvm-toolchain-focal-17 main
+deb-src http://apt.llvm.org/focal/ llvm-toolchain-focal-17 main
+deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy main
+deb-src http://apt.llvm.org/jammy/ llvm-toolchain-jammy main
+<span class="token comment"># 16</span>
+deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-16 main
+deb-src http://apt.llvm.org/jammy/ llvm-toolchain-jammy-16 main
+<span class="token comment"># 17</span>
+deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-17 main
+deb-src http://apt.llvm.org/jammy/ llvm-toolchain-jammy-17 main
+deb http://apt.llvm.org/lunar/ llvm-toolchain-lunar main
+deb-src http://apt.llvm.org/lunar/ llvm-toolchain-lunar main
+<span class="token comment"># 16</span>
+deb http://apt.llvm.org/lunar/ llvm-toolchain-lunar-16 main
+deb-src http://apt.llvm.org/lunar/ llvm-toolchain-lunar-16 main
+<span class="token comment"># 17</span>
+deb http://apt.llvm.org/lunar/ llvm-toolchain-lunar-17 main
+deb-src http://apt.llvm.org/lunar/ llvm-toolchain-lunar-17 main<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre><button type="button" class="tab-to-top" aria-label="scroll to top"><i class="fas fa-arrow-up"></i></button></div><div class="tab-item-content" id="安装-2"><pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token function">bash</span> <span class="token parameter variable">-c</span> <span class="token string">"<span class="token variable"><span class="token variable">$(</span><span class="token function">wget</span> <span class="token parameter variable">-O</span> - https://apt.llvm.org/llvm.sh<span class="token variable">)</span></span>"</span><span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+<blockquote>
+<p>安装的版本版本为最新的稳定版， 若想指定安装版本可以使用以下方式安装</p>
+</blockquote>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token function">bash</span> <span class="token parameter variable">-c</span> <span class="token string">"<span class="token variable"><span class="token variable">$(</span><span class="token function">wget</span> <span class="token parameter variable">-O</span> - https://apt.llvm.org/llvm.sh<span class="token variable">)</span></span>"</span> <span class="token number">16</span> all<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre><button type="button" class="tab-to-top" aria-label="scroll to top"><i class="fas fa-arrow-up"></i></button></div></div></div>
+<h1>设置clang 为默认的编译器</h1>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token function">sudo</span> update-alternatives <span class="token parameter variable">--install</span> /usr/bin/cc cc /usr/bin/clang <span class="token number">100</span>
+<span class="token function">sudo</span> update-alternatives <span class="token parameter variable">--install</span> /usr/bin/c++ c++ /usr/bin/clang++ <span class="token number">100</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span></span></code></pre>
+]]></content>
+      <categories>
+        <category>开发</category>
+        <category>c++</category>
+      </categories>
+      <tags>
+        <tag>c++</tag>
+        <tag>clang</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>linux 下PaddleOCR c++ 环境的搭建以及编译</title>
+    <url>//post/55833.html</url>
+    <content><![CDATA[<link rel="stylesheet" class="aplayer-secondary-style-marker" href="/assets/css/APlayer.min.css"><script src="/assets/js/APlayer.min.js" class="aplayer-secondary-script-marker"></script><p>PaddleOCR旨在打造一套丰富、领先、且实用的OCR工具库，助力开发者训练出更好的模型，并应用落地。本章节介绍PaddleOCR 模型的C++部署方法。C++在性能计算上优于Python，因此，在大多数CPU、GPU部署场景，多采用C++的部署方式，本节将介绍如何在Linux (CPU)环境下配置C++环境并完成PaddleOCR模型部署。</p>
+<p>主要过程包括:</p>
+<ul>
+<li>linux 下PaddleOCR c++ 环境的搭建以及编译</li>
+<li>linux下 识别文字的项目</li>
+</ul>
+<h1>安装编译环境</h1>
+<h2 id="安装依赖编译环境">安装依赖编译环境</h2>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token function">apt-get</span> <span class="token function">install</span> net-tools <span class="token function">tar</span> <span class="token function">wget</span> <span class="token function">make</span> build-essential <span class="token function">git</span> python3-dev<span class="token punctuation">;</span>
+<span class="token function">wget</span> https://github.com/Kitware/CMake/releases/download/v3.22.5/cmake-3.22.5-linux-x86_64.sh<span class="token punctuation">;</span>
+<span class="token function">sh</span> cmake-3.22.5-linux-x86_64.sh <span class="token parameter variable">--prefix</span><span class="token operator">=</span>/usr/local --exclude-subdir
+<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span></span></code></pre>
+<p>安装cmake 之前需要先卸载低版本的cmake，若cmake 版本不是太低的话可以跳过安装</p>
+<h2 id="编译opencv">编译opencv</h2>
+<p>官方教程使用的是3.6版本, 这里我使用最新版的4.6.0版本</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token function">apt-get</span> <span class="token function">install</span>  libeigen3-dev libjpeg-dev libpng-dev libtiff-dev  libtiff5-dev
+  <span class="token comment">#https://github.com/opencv/opencv/archive/refs/tags/4.6.0.tar.gz</span>
+  <span class="token comment"># 编译</span>
+  cmake <span class="token punctuation">..</span> <span class="token punctuation">\</span>
+  <span class="token parameter variable">-DCMAKE_INSTALL_PREFIX</span><span class="token operator">=~</span>/paddle/dep <span class="token punctuation">\</span>
+  <span class="token parameter variable">-DCMAKE_BUILD_TYPE</span><span class="token operator">=</span>Release <span class="token punctuation">\</span>
+  <span class="token parameter variable">-DBUILD_SHARED_LIBS</span><span class="token operator">=</span>OFF <span class="token punctuation">\</span>
+  <span class="token parameter variable">-DWITH_IPP</span><span class="token operator">=</span>OFF <span class="token punctuation">\</span>
+  <span class="token parameter variable">-DBUILD_IPP_IW</span><span class="token operator">=</span>OFF <span class="token punctuation">\</span>
+  <span class="token parameter variable">-DWITH_LAPACK</span><span class="token operator">=</span>OFF <span class="token punctuation">\</span>
+  <span class="token parameter variable">-DBUILD_TESTS</span><span class="token operator">=</span>OFF
+  <span class="token parameter variable">-DCMAKE_INSTALL_LIBDIR</span><span class="token operator">=</span>lib64 <span class="token punctuation">\</span>
+  <span class="token parameter variable">-DWITH_ZLIB</span><span class="token operator">=</span>ON <span class="token punctuation">\</span>
+  <span class="token parameter variable">-DBUILD_ZLIB</span><span class="token operator">=</span>ON <span class="token punctuation">\</span>
+  <span class="token parameter variable">-DWITH_JPEG</span><span class="token operator">=</span>ON <span class="token punctuation">\</span>
+  <span class="token parameter variable">-DBUILD_JPEG</span><span class="token operator">=</span>ON <span class="token punctuation">\</span>
+  <span class="token parameter variable">-DWITH_PNG</span><span class="token operator">=</span>ON <span class="token punctuation">\</span>
+  <span class="token parameter variable">-DBUILD_PNG</span><span class="token operator">=</span>ON <span class="token punctuation">\</span>
+  <span class="token parameter variable">-DWITH_TIFF</span><span class="token operator">=</span>ON <span class="token punctuation">\</span>
+  <span class="token parameter variable">-DBUILD_TIFF</span><span class="token operator">=</span>ON
+<span class="token builtin class-name">cd</span> build <span class="token operator">&amp;&amp;</span> <span class="token function">make</span> <span class="token parameter variable">-j</span> <span class="token number">16</span> <span class="token operator">&amp;&amp;</span> <span class="token function">make</span> <span class="token function">install</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<p>需要注意 -DCMAKE_INSTALL_PREFIX=~/paddle/dep 参数是指定安装目录， 需要修改成自己定义的目录<br>
+编译opencv 是用来操作的图像的 应该也可以使用其他的包管理安装如vcpkg 或conan</p>
+<h2 id="下载或者编译Paddle预测库">下载或者编译Paddle预测库</h2>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">pip3 <span class="token function">install</span> numpy pyyaml protobuf <span class="token parameter variable">-i</span> http://mirrors.aliyun.com/pypi/simple --trusted-host mirrors.aliyun.com
+  <span class="token function">apt-get</span> <span class="token function">install</span>  patchelf
+  <span class="token function">git</span> clone https://github.com/paddlepaddle/Paddle
+  <span class="token builtin class-name">cd</span> Paddle
+  <span class="token comment"># 建议使用git checkout切换到Paddle稳定的版本，如：</span>
+  <span class="token function">git</span> checkout v2.3.0
+  <span class="token builtin class-name">cd</span> Paddle
+  <span class="token function">mkdir</span> build
+  <span class="token builtin class-name">cd</span> build
+  cmake  <span class="token punctuation">..</span> <span class="token punctuation">\</span>
+    <span class="token parameter variable">-DFLUID_INFERENCE_INSTALL_DIR</span><span class="token operator">=~</span>/paddle/dep <span class="token punctuation">\</span>
+    <span class="token parameter variable">-DWITH_CONTRIB</span><span class="token operator">=</span>OFF <span class="token punctuation">\</span>
+    <span class="token parameter variable">-DWITH_MKL</span><span class="token operator">=</span>ON <span class="token punctuation">\</span>
+    <span class="token parameter variable">-DWITH_MKLDNN</span><span class="token operator">=</span>ON  <span class="token punctuation">\</span>
+    <span class="token parameter variable">-DWITH_TESTING</span><span class="token operator">=</span>OFF <span class="token punctuation">\</span>
+    <span class="token parameter variable">-DWITH_GPU</span><span class="token operator">=</span>OFF <span class="token punctuation">\</span>
+    <span class="token parameter variable">-DWITH_NCCL</span><span class="token operator">=</span>OFF <span class="token punctuation">\</span>
+    <span class="token parameter variable">-DCMAKE_BUILD_TYPE</span><span class="token operator">=</span>Release <span class="token punctuation">\</span>
+    <span class="token parameter variable">-DWITH_INFERENCE_API_TEST</span><span class="token operator">=</span>OFF <span class="token punctuation">\</span>
+    <span class="token parameter variable">-DON_INFER</span><span class="token operator">=</span>ON <span class="token punctuation">\</span>
+    <span class="token parameter variable">-DWITH_PYTHON</span><span class="token operator">=</span>ON
+  <span class="token function">make</span> <span class="token parameter variable">-j16</span> <span class="token operator">&amp;&amp;</span>  <span class="token function">make</span> inference_lib_dist<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<p>需要注意一下下参数<br>
+-DFLUID_INFERENCE_INSTALL_DIR=~/paddle/dep  指安装的目录<br>
+-DWITH_GPU=OFF   开启GPU<br>
+-DWITH_NCCL=OFF  开启GPU 则需要安装nccl,</p>
+<blockquote>
+<p>注: 官网也提供了各种编译完成预测库，<a href="https://paddleinference.paddlepaddle.org.cn/user_guides/download_lib.html">Paddle预测库官网</a>上提供了不同cuda版本的Linux预测库，可以在官网查看并选择合适的预测库版本</p>
+</blockquote>
+<h1>demo测试</h1>
+<h2 id="准备模型">准备模型</h2>
+<p>直接下载PaddleOCR提供的推理模型，或者参考模型预测章节，将训练好的模型导出为推理模型。模型导出之后，假设放在inference目录下，则目录结构如下。</p>
+<h2 id="编译PaddleOCR-C-预测demo">编译PaddleOCR C++预测demo</h2>
+<h1>错误解决</h1>
+<p>在官方推荐的编译器中gcc-5.4和gcc-8.2，博主在只是用的ubuntu22.04版本，默认的的gcc 是11.2版本在编译期间遇到不少错误。</p>
+<h2 id="comparison-object-must-be-invocable-as-const">comparison object must be invocable as const</h2>
+<p>改错出现的位置大致是third_party/protobuf/src/extern_protobuf/src/google/protobuf/compiler/java/java_file.cc 文件中，是由gcc17标准的引起，只需要重载函数添加const 即可，如下</p>
+<pre class="line-numbers language-c++" data-language="c++"><code class="language-c++">struct FieldDescriptorCompare &#123;
+  bool operator ()(const FieldDescriptor* f1, const FieldDescriptor* f2)  &#123;
+    if(f1 &#x3D;&#x3D; NULL) &#123;
+      return false;
+    &#125;
+    if(f2 &#x3D;&#x3D; NULL) &#123;
+      return true;
+    &#125;
+    return f1-&gt;full_name() &lt; f2-&gt;full_name();
+  &#125;
+&#125;;<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<p>修改成以下代码</p>
+<pre class="line-numbers language-c++" data-language="c++"><code class="language-c++">struct FieldDescriptorCompare &#123;
+  bool operator ()(const FieldDescriptor* f1, const FieldDescriptor* f2) const &#123;
+    if(f1 &#x3D;&#x3D; NULL) &#123;
+      return false;
+    &#125;
+    if(f2 &#x3D;&#x3D; NULL) &#123;
+      return true;
+    &#125;
+    return f1-&gt;full_name() &lt; f2-&gt;full_name();
+  &#125;
+&#125;;<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<h2 id="size-t-未识别错误">size_t 未识别错误</h2>
+<p>编译 paddle/fluid/memory/detail/memory_block.h时 则出现size_t 未识别错误。不知道是linux平台问题还是g++版本问题。解决方式也很简单在其头部添加c的头文件即可:如何西</p>
+<pre class="line-numbers language-c++" data-language="c++"><code class="language-c++">#include&lt;stdio.h&gt;<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+<h2 id="copy-elision-错误">copy elision 错误</h2>
+<p>编译器会出现以错误代码</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">error: moving a <span class="token builtin class-name">local</span> object <span class="token keyword">in</span> a <span class="token builtin class-name">return</span> statement prevents copy elision <span class="token punctuation">[</span>-Werror<span class="token operator">=</span>pessimizing-move<span class="token punctuation">]</span>
+  <span class="token number">615</span> <span class="token operator">|</span>   <span class="token builtin class-name">return</span> std::move<span class="token punctuation">(</span>thr_events<span class="token punctuation">)</span><span class="token punctuation">;</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span></span></code></pre>
+<p>大致return语句返回的对象是一个纯右值，且该对象类型与函数返回值类型相同时 导致阻碍编译器优化造成copy elision。通过增加编译参数将其转化为警告开关</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token function">find</span> SRCROOT <span class="token parameter variable">-type</span> f <span class="token parameter variable">-name</span> CMakeLists.txt <span class="token parameter variable">-exec</span> <span class="token function">sed</span> <span class="token parameter variable">-i</span> <span class="token parameter variable">-e</span> <span class="token string">'$aset(CMAKE_CXX_FLAGS "$&#123;CMAKE_CXX_FLAGS&#125; -Wno-error=pessimizing-move")'</span> <span class="token punctuation">&#123;</span><span class="token punctuation">&#125;</span> <span class="token punctuation">\</span><span class="token punctuation">;</span><span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+<h2 id="Werror-deprecated-copy">-Werror=deprecated-copy</h2>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token function">find</span> SRCROOT <span class="token parameter variable">-type</span> f <span class="token parameter variable">-name</span> CMakeLists.txt <span class="token parameter variable">-exec</span> <span class="token function">sed</span> <span class="token parameter variable">-i</span> <span class="token parameter variable">-e</span> <span class="token string">'$aset(CMAKE_CXX_STANDARD $&#123;CXX_STANDARD&#125;)'</span> <span class="token punctuation">&#123;</span><span class="token punctuation">&#125;</span> <span class="token punctuation">\</span><span class="token punctuation">;</span><span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+<!-- find SRCROOT -type f -name CMakeLists.txt -exec sed -i -e '$aset(CMAKE_CXX_STANDARD ${CXX_STANDARD})' {} \;
+
+]]></content>
+      <categories>
+        <category>开发</category>
+        <category>c++</category>
+      </categories>
+      <tags>
+        <tag>PaddleOCR</tag>
+        <tag>AI</tag>
+        <tag>图片识别</tag>
+        <tag>c++</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>vcpkg 设置景象代理</title>
+    <url>//post/36536.html</url>
+    <content><![CDATA[<link rel="stylesheet" class="aplayer-secondary-style-marker" href="/assets/css/APlayer.min.css"><script src="/assets/js/APlayer.min.js" class="aplayer-secondary-script-marker"></script><blockquote>
+<p>针对github release、archive以及项目文件的加速项目，和vcpkg 使用代理镜像镜像加速方式</p>
+</blockquote>
+<h1>github  镜像</h1>
+<p>GitHub是目前全球最大的开源代码库之一。但是因为国内经常访问不了Github,或者访问速度慢，导致国内机器无法拉取项目部署，解决这些问题可以通以下国内镜像，来提高访问速度。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">域名</th>
+<th style="text-align:left">是否有效</th>
+<th style="text-align:left">clone 加速</th>
+<th style="text-align:left">Raw</th>
+<th style="text-align:left">Releases</th>
+<th style="text-align:left">api</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><a href="https://gitclone.com/">https://gitclone.com/</a></td>
+<td style="text-align:left">✔️</td>
+<td style="text-align:left"><a href="https://gitclone.com/github.com">https://gitclone.com/github.com</a></td>
+<td style="text-align:left"><a href="https://gitclone.com/raw.githubusercontent.com/">https://gitclone.com/raw.githubusercontent.com/</a></td>
+<td style="text-align:left"><a href="https://gitclone.com/github.com">https://gitclone.com/github.com</a></td>
+<td style="text-align:left"></td>
+</tr>
+<tr>
+<td style="text-align:left"><a href="https://hub.fastgit.xyz/">https://hub.fastgit.xyz/</a></td>
+<td style="text-align:left">x</td>
+<td style="text-align:left"><a href="https://hub.fastgit.xyz">https://hub.fastgit.xyz</a></td>
+<td style="text-align:left"><a href="https://raw.fastgit.org">https://raw.fastgit.org</a></td>
+<td style="text-align:left"><a href="https://hub.fastgit.xyz/">https://hub.fastgit.xyz/</a></td>
+<td style="text-align:left"></td>
+</tr>
+<tr>
+<td style="text-align:left"><a href="https://mirror.ghproxy.com">https://mirror.ghproxy.com</a></td>
+<td style="text-align:left">x</td>
+<td style="text-align:left"><a href="https://mirror.ghproxy.com/https://github.com/">https://mirror.ghproxy.com/https://github.com/</a></td>
+<td style="text-align:left"><a href="https://mirror.ghproxy.com/https://raw.githubusercontent.com/">https://mirror.ghproxy.com/https://raw.githubusercontent.com/</a></td>
+<td style="text-align:left"><a href="https://mirror.ghproxy.com/https://github.com/">https://mirror.ghproxy.com/https://github.com/</a></td>
+<td style="text-align:left"></td>
+</tr>
+<tr>
+<td style="text-align:left"><a href="https://ghproxy.com">https://ghproxy.com</a></td>
+<td style="text-align:left">✔️</td>
+<td style="text-align:left"><a href="https://ghproxy.com/https://github.com/">https://ghproxy.com/https://github.com/</a></td>
+<td style="text-align:left"><a href="https://ghproxy.com/https://raw.githubusercontent.com/">https://ghproxy.com/https://raw.githubusercontent.com/</a></td>
+<td style="text-align:left"><a href="https://ghproxy.com/https://github.com/">https://ghproxy.com/https://github.com/</a></td>
+<td style="text-align:left"></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>注: <a href="http://api.github.com">api.github.com</a> 不需要加速可直接访问.<br>
+注: <a href="http://raw.githubusercontent.com">raw.githubusercontent.com</a> 支持ipv6 所以如支持IPV6可以不设置</p>
+</blockquote>
+<h1>vcpkg 使用代理镜像镜像加速方式</h1>
+<p>Vcpkg是微软团队在GitHub上的一个开源项目，他类似于poython pip 的c++包管理工具.它提供一系列简单的命令，其支持从各种存储方式拉取源码然后编译成三方库.(如url gitlab github git sourceforge 等开源社区).因大部分的源码存在github因此同样的存在无法访问或者存在下载超时的情况.因此可以通过以下加速vcpkg:</p>
+<ul>
+<li>替换scripts/vcpkgTools.xml <a href="http://xn--github-286l992acl0b.com">所有的github.com</a></li>
+<li>将scripts/cmake/vcpkg_from_github.cmake 中 set(github_host “<a href="https://github.com">https://github.com</a>”) 替换set(github_host “<a href="https://hub.fastgit.xyz">https://hub.fastgit.xyz</a>”)</li>
+</ul>
+<blockquote>
+<p>注1: github_host 也可以通过设置arg_GITHUB_HOST 实现<br>
+注2: vcpkg <a href="http://xn--raw-iq0fx3i172a.githubusercontent.com">并没对raw.githubusercontent.com</a> 引入.因此大多数在ports的引入的,没有更好的解决方式.可以尝试直接修改 <a href="http://raw.githubusercontent.com">raw.githubusercontent.com</a> <a href="http://xn--hub-633ez79d.fastgit.org">指向hub.fastgit.org</a><br>
+注3: 该修改方式并不能影响ports</p>
+</blockquote>
+]]></content>
+      <categories>
+        <category>开发</category>
+        <category>c++</category>
+      </categories>
+      <tags>
+        <tag>c++</tag>
+        <tag>github</tag>
+        <tag>vcpkg</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>vscode/vs 配置 vcpkg 的c++ 开发环境</title>
+    <url>//post/8694.html</url>
+    <content><![CDATA[<link rel="stylesheet" class="aplayer-secondary-style-marker" href="/assets/css/APlayer.min.css"><script src="/assets/js/APlayer.min.js" class="aplayer-secondary-script-marker"></script><h1>Vistual Studio</h1>
+<p>Vistual Studio 配置vcpkg的环境开发需要在勾选vcpkg 组件即可。</p>
+<span id="more"></span>
+<h1>VS Code</h1>
+<h2 id="前提准备">前提准备</h2>
+<ul>
+<li>VS Code</li>
+<li>cmake</li>
+<li>vcpkg</li>
+</ul>
+<h2 id="插件安装">插件安装</h2>
+<p>VS Code  需要安装一下插件</p>
+<ul>
+<li>c/c++</li>
+<li>cmake</li>
+<li>cmake Tools</li>
+</ul>
+<h2 id="配置vcpkg">配置vcpkg</h2>
+<p>在setting.json 文件中添加</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token string">"cmake.configureSettings"</span><span class="token builtin class-name">:</span> <span class="token punctuation">&#123;</span>
+      <span class="token string">"CMAKE_TOOLCHAIN_FILE"</span><span class="token builtin class-name">:</span> <span class="token string">"<span class="token variable">$&#123;VCPKG_ROOT&#125;</span>scripts/buildsystems/vcpkg.cmake"</span>
+  <span class="token punctuation">&#125;</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span></span></code></pre>
+<blockquote>
+<p>setting.json 为vscode 的配置文件，其存在项目、全局、和远程 三种配置，具体配置那种可按照自身意愿。</p>
+</blockquote>
+<h2 id="创建测试工程">创建测试工程</h2>
+<h3 id="安装spdlog-库">安装spdlog 库</h3>
+<p>在项目目录下创建vcpkg.json文件，</p>
+<pre class="line-numbers language-json" data-language="json"><code class="language-json"><span class="token punctuation">&#123;</span>
+    <span class="token property">"$schema"</span><span class="token operator">:</span> <span class="token string">"https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json"</span><span class="token punctuation">,</span>
+    <span class="token property">"name"</span><span class="token operator">:</span> <span class="token string">"mylibrary"</span><span class="token punctuation">,</span>
+    <span class="token property">"version"</span><span class="token operator">:</span> <span class="token string">"1.0"</span><span class="token punctuation">,</span>
+    <span class="token property">"dependencies"</span><span class="token operator">:</span> <span class="token punctuation">[</span>
+        <span class="token punctuation">&#123;</span>
+            <span class="token property">"name"</span><span class="token operator">:</span> <span class="token string">"spdlog"</span><span class="token punctuation">,</span>
+            <span class="token property">"version>="</span><span class="token operator">:</span> <span class="token string">"1.12.0"</span><span class="token punctuation">,</span>
+            
+        <span class="token punctuation">&#125;</span>
+    <span class="token punctuation">]</span><span class="token punctuation">,</span>
+    <span class="token property">"builtin-baseline"</span><span class="token operator">:</span> <span class="token string">"3f6e8e9c09e28a0eae4b37cceb2982ca2518278c"</span>
+<span class="token punctuation">&#125;</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<h3 id="创建工程">创建工程</h3>
+<pre class="line-numbers language-cmake" data-language="cmake"><code class="language-cmake"><span class="token keyword">cmake_minimum_required</span><span class="token punctuation">(</span><span class="token property">VERSION</span> <span class="token number">3.0.0</span><span class="token punctuation">)</span>
+  <span class="token keyword">project</span><span class="token punctuation">(</span>vcpkg_test <span class="token property">VERSION</span> <span class="token number">0.1.0</span> LANGUAGES C CXX<span class="token punctuation">)</span>
+
+  <span class="token keyword">include</span><span class="token punctuation">(</span>CTest<span class="token punctuation">)</span>
+  <span class="token keyword">enable_testing</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+  <span class="token keyword">find_package</span><span class="token punctuation">(</span>spdlog CONFIG REQUIRED<span class="token punctuation">)</span>
+      
+  <span class="token keyword">add_executable</span><span class="token punctuation">(</span>vcpkg_test main.cpp<span class="token punctuation">)</span>
+  <span class="token keyword">target_link_libraries</span><span class="token punctuation">(</span>main <span class="token namespace">PRIVATE</span> <span class="token inserted class-name">spdlog::spdlog_header_only</span><span class="token punctuation">)</span>
+  <span class="token keyword">set</span><span class="token punctuation">(</span>CPACK_PROJECT_NAME <span class="token punctuation">$&#123;</span><span class="token variable">PROJECT_NAME</span><span class="token punctuation">&#125;</span><span class="token punctuation">)</span>
+  <span class="token keyword">set</span><span class="token punctuation">(</span><span class="token variable">CPACK_PROJECT_VERSION</span> <span class="token punctuation">$&#123;</span><span class="token variable">PROJECT_VERSION</span><span class="token punctuation">&#125;</span><span class="token punctuation">)</span>
+  <span class="token keyword">include</span><span class="token punctuation">(</span>CPack<span class="token punctuation">)</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<pre class="line-numbers language-c++" data-language="c++"><code class="language-c++">#include &lt;iostream&gt;
+  #include&lt;spdlog&#x2F;spdlog.h&gt;
+  int main(int, char **) &#123;
+    spdlog::info(&quot;Hello, world!&quot;);
+  &#125;<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<p>完成以上操作， 直接按下 ctrl+shift+p ，输入</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">cmake:configure<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+<blockquote>
+<p>上述命令若无法完成spdlog包的下载，则执行一下命令后，重新输入以上命令</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token function">vcpkg</span> integrate <span class="token function">install</span><span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+</blockquote>
+<p>等待完成后，直接按下 ctrl+shift+p ，输入</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">cmake:build<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
+<p>等待编译完成</p>
+]]></content>
+      <categories>
+        <category>开发</category>
+        <category>c++</category>
+      </categories>
+      <tags>
+        <tag>c++</tag>
+        <tag>vcpkg</tag>
+        <tag>vscode</tag>
+        <tag>vs</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>针对ubuntu 设置终端代理、全局代理</title>
+    <url>//post/19593.html</url>
+    <content><![CDATA[<link rel="stylesheet" class="aplayer-secondary-style-marker" href="/assets/css/APlayer.min.css"><script src="/assets/js/APlayer.min.js" class="aplayer-secondary-script-marker"></script><h1>针对Ubuntu设置代理</h1>
+<h2 id="终端代理">终端代理</h2>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token builtin class-name">export</span> <span class="token assign-left variable">http_proxy</span><span class="token operator">=</span>http://用户名:密码@代理地址:代理端口
+<span class="token builtin class-name">export</span> <span class="token assign-left variable">https_proxy</span><span class="token operator">=</span>http://用户名:密码@代理地址:代理端口
+<span class="token builtin class-name">export</span> <span class="token assign-left variable">no_proxy</span><span class="token operator">=</span><span class="token string">'127.0.0.1, localhost, *.cnn.com, 192.168.1.10, domain.com:8080'</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span></span></code></pre>
+<blockquote>
+<p>*.cnn.com 泛域名 但是测试好像没生效，</p>
+</blockquote>
+<h2 id="apt-代理">apt 代理</h2>
+<p>编辑 /etc/apt/apt.conf.d/porxy.conf 文件添加以下</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">Acquire::http::Proxy <span class="token string">"http://proxy.xxx.com:8080"</span><span class="token punctuation">;</span>
+Acquire::https::Proxy <span class="token string">"http://proxy.xxx.com:8080"</span><span class="token punctuation">;</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span></span></code></pre>
+]]></content>
+      <categories>
+        <category>运维</category>
+        <category>代理</category>
+      </categories>
+      <tags>
+        <tag>代理</tag>
+        <tag>运维</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>记一次butterfly 页脚 页头 的美化</title>
+    <url>//post/54540.html</url>
+    <content><![CDATA[<link rel="stylesheet" class="aplayer-secondary-style-marker" href="/assets/css/APlayer.min.css"><script src="/assets/js/APlayer.min.js" class="aplayer-secondary-script-marker"></script><h1>butterfly页脚页头的美化</h1>
+<h2 id="1-修改页头">1. 修改页头</h2>
+<ol>
+<li>在sources 下创建assets/css/head.styl 文件 添加以下代码</li>
+</ol>
+ <pre class="line-numbers language-css" data-language="css"><code class="language-css"> @import <span class="token string">'nib'</span>
+
+// 顶部图
+#page-header
+  &amp;<span class="token punctuation">,</span> &amp;<span class="token punctuation">:</span>before
+    <span class="token property">background</span><span class="token punctuation">:</span> transparent <span class="token important">!important</span>
+  &amp;.post-bg<span class="token punctuation">,</span> &amp;.not-home-page
+    <span class="token property">height</span><span class="token punctuation">:</span> 280px <span class="token important">!important</span>
+  #post-info
+    <span class="token property">bottom</span><span class="token punctuation">:</span> 40px <span class="token important">!important</span>
+  #page-site-info
+    <span class="token property">top</span><span class="token punctuation">:</span> 140px <span class="token important">!important</span>
+
+  @media screen and <span class="token punctuation">(</span><span class="token property">max-width</span><span class="token punctuation">:</span> 768px<span class="token punctuation">)</span>
+    &amp;.not-home-page
+      <span class="token property">height</span><span class="token punctuation">:</span> 200px <span class="token important">!important</span>
+    #post-info
+      <span class="token property">bottom</span><span class="token punctuation">:</span> 10px <span class="token important">!important</span>
+    #page-site-info
+      <span class="token property">top</span><span class="token punctuation">:</span> 100px <span class="token important">!important</span>
+
+.top-img
+  <span class="token property">height</span><span class="token punctuation">:</span> 250px
+  <span class="token property">margin</span><span class="token punctuation">:</span> -50px -40px 50px
+  <span class="token property">border-top-left-radius</span><span class="token punctuation">:</span> inherit
+  <span class="token property">border-top-right-radius</span><span class="token punctuation">:</span> inherit
+  <span class="token property">background-position</span><span class="token punctuation">:</span> center center
+  <span class="token property">background-size</span><span class="token punctuation">:</span> cover
+  <span class="token property">transition</span><span class="token punctuation">:</span> all 0.3s
+
+  @media screen and <span class="token punctuation">(</span><span class="token property">max-width</span><span class="token punctuation">:</span> 768px<span class="token punctuation">)</span>
+    <span class="token property">height</span><span class="token punctuation">:</span> 230px
+    <span class="token property">margin</span><span class="token punctuation">:</span> -36px -14px 36px
+
+  [data-theme=<span class="token string">'dark'</span>] &amp;
+    <span class="token property">filter</span><span class="token punctuation">:</span> <span class="token function">brightness</span><span class="token punctuation">(</span>0.5<span class="token punctuation">)</span>
+<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<h2 id="2-修改页脚文件">2. 修改页脚文件</h2>
+<p><s>在sources 下创建assets/css/footer.styl 文件 添加以下代码</s></p>
+<pre class="line-numbers language-css" data-language="css"><code class="language-css"><span class="token comment">/*  页脚 */</span>
+<span class="token comment">/* 
+  #footer:before
+  background-color: alpha(#FFF, .1)
+
+  [data-theme='dark'] &amp;
+    background-color: alpha(#000, .1) 
+*/</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<p>$nsb:一开始想取消页脚的蓝色背景，使其和背景颜色保持统一，从作者博客以及其他博客那里了解的方案都是动用css 文件，也就是下面的方案。 最近查看的butterfly的源码，发现其本身针对页脚进行了处理， 在 主题配置文件中存在 <mark class="hl-label red">#footer_bg:</mark>  参数， 我们只需将其值改为 <mark class="hl-label red">transparent</mark>  之后 我们会发现 页脚的蓝色已经不见了，取而代之的是一层黑色遮罩。 这是因为butterfly 是默认增加黑色半透遮罩， 其控制参数为</p>
+<pre class="line-numbers language-yaml" data-language="yaml"><code class="language-yaml"><span class="token key atrule">mask</span><span class="token punctuation">:</span>  
+ <span class="token key atrule">header</span><span class="token punctuation">:</span> <span class="token boolean important">true</span>  
+ <span class="token key atrule">footer</span><span class="token punctuation">:</span> <span class="token boolean important">true</span> <span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span></span></code></pre>
+<p>只需将其改为 <mark class="hl-label red">false</mark>   即可</p>
+<pre class="line-numbers language-yaml" data-language="yaml"><code class="language-yaml"><span class="token key atrule">mask</span><span class="token punctuation">:</span>  
+ <span class="token key atrule">header</span><span class="token punctuation">:</span> <span class="token boolean important">false</span>  
+ <span class="token key atrule">footer</span><span class="token punctuation">:</span> <span class="token boolean important">false</span> <span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span></span></code></pre>
+<h2 id="3-引入文件">3. 引入文件</h2>
+<p>在主题配置文件中引入以上两个文件</p>
+ <pre class="line-numbers language-yaml" data-language="yaml"><code class="language-yaml"> <span class="token key atrule">inject</span><span class="token punctuation">:</span>
+  <span class="token key atrule">head</span><span class="token punctuation">:</span> 
+  <span class="token punctuation">-</span> &lt;link rel="stylesheet" href="/assets/css/head.css"<span class="token punctuation">></span>
+  <span class="token key atrule">bottom</span><span class="token punctuation">:</span>
+  <span class="token punctuation">-</span> &lt;link rel="stylesheet" href="/assets/css/footer.css"<span class="token punctuation">></span>
+<span class="token key atrule">index_img</span><span class="token punctuation">:</span> transparent
+<span class="token key atrule">foot_bg</span><span class="token punctuation">:</span> transparent<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+]]></content>
+      <categories>
+        <category>hexo</category>
+        <category>butterfly</category>
+      </categories>
+      <tags>
+        <tag>butterfly</tag>
+        <tag>hexo</tag>
+      </tags>
+  </entry>
+</search>

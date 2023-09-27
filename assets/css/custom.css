@@ -1,0 +1,76 @@
+<link rel="stylesheet" class="aplayer-secondary-style-marker" href="/assets/css/APlayer.min.css"><script src="/assets/js/APlayer.min.js" class="aplayer-secondary-script-marker"></script>
+@import url(https://cdn.jsdelivr.net/npm/firacode@6.2.0/distr/fira_code.css);
+
+h1#site-title {
+    font-size: 8vh !important;
+    text-shadow: 5px 2px 6px #000 !important;
+    font-family: Fira Code !important
+}
+
+span#subtitle {
+    font-size: 3vh !important;
+    text-shadow: 5px 2px 6px #000 !important;
+    font-family: Fira Code !important
+}
+
+a#site-name {
+    text-shadow: 5px 2px 6px #000 !important;
+    font-family: Fira Code !important
+}
+
+#article-container pre,
+#article-container code {
+    font-family: Fira Code !important;
+}
+
+.article-title {
+    font-family: Fira Code !important;
+    font-weight: bolder;
+}
+#nav
+{
+    font-size: 2.0rem;
+}
+#footer #footer-wrap 
+{
+    color: var(--font-color);
+}
+/* 全局背景透明渐变 */
+[data-theme=light]  #recent-posts>.recent-post-item,
+.layout_page>div:first-child:not(.recent-posts),
+.layout_post>#page,
+.layout_post>#post,
+.read-mode .layout_post>#post {
+    /* background: var(--light_bg_color) */
+    /* 设置元素背景为透明 */
+    background-color: transparent;
+
+    /* 应用毛玻璃效果 */
+    -webkit-backdrop-filter: blur(5px);
+    backdrop-filter: blur(5px);
+}
+
+[data-theme=light] #aside-content .card-widget {
+    /* background: var(--light_bg_color) */
+    /* 设置元素背景为透明 */
+    background-color: transparent ;
+
+    /* 应用毛玻璃效果 */
+    -webkit-backdrop-filter: blur(5px);
+    backdrop-filter: blur(5px);
+}
+
+[data-theme=light] #post,
+#page {
+    /* background: var(--light_bg_color) */
+    /* 设置元素背景为透明 */
+    background-color: transparent;
+
+    /* 应用毛玻璃效果 */
+    -webkit-backdrop-filter: blur(5px);
+    backdrop-filter: blur(5px);
+}
+
+body::before {
+    opacity: 0.5;
+}
